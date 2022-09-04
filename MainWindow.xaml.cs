@@ -1,18 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Collections;
+using System.Media;
+using System.Timers;
+using System.Windows.Navigation;
 
 namespace WpfApp1
 {
@@ -22,20 +20,18 @@ namespace WpfApp1
     class Bird
     {
         public bool changemovecon = false;     // whether to change move or not
-        public int move = 1;
+        private int move = 1;
         private int size = 40;
-        private int speedy = 3;   // fall speed of the player or bird
+
+        private double speedy = 2.5;   // fall speed of the player or bird
         public bool jumping = false;
         private int jumpcount = 0;
-        // public string url = $"E:\\customs\\csharpdev\\Flappy_BIrd\\WpfApp1\\img\\movement\\bird{2}.png";
         public string url;
         ImageBrush skin = new ImageBrush();
-        Rectangle bird;
+        public Rectangle bird;
         
         public Bird(Canvas mycan)
         {
-            // this.url = $"E:\\customs\\csharpdev\\Flappy_BIrd\\WpfApp1\\img\\movement\\bird{move}.png";
-            // this.skin.ImageSource = new BitmapImage(new Uri(this.url));
             changemove();
             this.bird = new Rectangle(){Width=size,Height=size,Fill=this.skin};
             Canvas.SetLeft(this.bird,100);
@@ -77,25 +73,56 @@ namespace WpfApp1
     public partial class MainWindow : Window
     {
 
+        
+        // creating the pipe class
+        public class Pipe{
+            public Rectangle recpipe;
+            public Pipe(Rectangle gpipe,Canvas mycan){
+                this.recpipe = gpipe;
+                mycan.Children.Add(gpipe);
+            }
+        }
+
+        
+        // declaring all the global variable
+        public int score = 0;
+
         public int noofpipe = 10;
         public double lastxco;
 
         public int pipewidth = 60;
+
+        public int pipespeed = 3;
+
+        public string audiobaseurl = "E:\\customs\\csharpdev\\Flappy_BIrd\\WpfApp1\\Audio\\";
+
+        MediaPlayer mp = new MediaPlayer();
+        
         Random rand  = new Random();
 
-        // creating the player
+        // creating the player  i.e from the Bird class
         Bird player;
 
+
+        // bothe up and down pipe rect
         Rectangle downpiperect;
         Rectangle uppiperect;
 
 
+        bool scoreincremented = false;
+
+        double lastpipex = 0;
+
+
+        ArrayList pipelist = new ArrayList();
+
         public MainWindow()
-        {
-            // xco = Width;
+        { 
+            
+
             DispatcherTimer dispatcher = new DispatcherTimer();
             dispatcher.Tick += gameloop;
-            dispatcher.Interval = TimeSpan.FromMilliseconds(10);
+            dispatcher.Interval = TimeSpan.FromMilliseconds(5);
             dispatcher.Start();
             string baseurl1 = "E:\\customs\\csharpdev\\Flappy_BIrd\\WpfApp1\\img";
             InitializeComponent();
@@ -119,16 +146,6 @@ namespace WpfApp1
             uppipebrush.ImageSource = uppipe;
             uppipe.EndInit();
             uppiperect = new Rectangle(){Width=60,Height=100,Fill=uppipebrush,Tag="pipe"};
-
-
-            // sqawning the initial pipe
-            Canvas.SetTop(uppiperect,0);
-            Canvas.SetLeft(uppiperect,Width);
-            mycan.Children.Add(uppiperect);
-
-            Canvas.SetBottom(downpiperect,100);
-            Canvas.SetLeft(downpiperect,Width);
-            mycan.Children.Add(downpiperect);
 
         }
 
@@ -159,67 +176,137 @@ namespace WpfApp1
             uppipebrush.ImageSource = uppipe;
             uppipe.EndInit();
 
+            int h1 = rand.Next(100,350);
+            int h2 = 380-h1;
 
-            downpiperect = new Rectangle(){Width=60,Height=100,Fill=downpipebrush,Tag="pipe"};
-            uppiperect = new Rectangle(){Width=60,Height=100,Fill=uppipebrush,Tag="pipe"};
+            downpiperect = new Rectangle(){Width=60,Height=h1,Fill=downpipebrush,Tag="pipe"};
+            uppiperect = new Rectangle(){Width=60,Height=h2,Fill=uppipebrush,Tag="pipe"};
 
-            double x = 0;
+            // X_co-ordintes of the first set of pipes
+            double x = Width+100;
 
             foreach (var item in mycan.Children.OfType<Rectangle>()){
-                x = Canvas.GetLeft(item);
+                if (Convert.ToString(item.Tag)=="pipe"){
+                    x = Canvas.GetLeft(item);
+                }
             }
 
-            int rdis = rand.Next(100,200);
+
+
+            int rdis = rand.Next(180,200);
             Canvas.SetTop(uppiperect,0);
             Canvas.SetLeft(uppiperect,x+pipewidth+rdis);
-            mycan.Children.Add(uppiperect);
+            pipelist.Add(new Pipe(uppiperect,mycan));
 
             Canvas.SetBottom(downpiperect,100);
             Canvas.SetLeft(downpiperect,x+pipewidth+rdis);
-            mycan.Children.Add(downpiperect);
+            pipelist.Add(new Pipe(downpiperect,mycan));
 
 
         }
 
         private void gameloop(object sender,EventArgs e)
         {
-            if (noofpipe!=0)
-            {   
-                spawnpipe();
-                noofpipe-=1;
-            }
-            foreach(Rectangle item in mycan.Children.OfType<Rectangle>()){
-                if (Convert.ToString(item.Tag) == "pipe"){
-                    Canvas.SetLeft(item,Canvas.GetLeft(item)-3);
-                    lastxco = Canvas.GetLeft(item);
-                    if (lastxco+pipewidth<0){
-                        // mycan.Children.Remove(item);
-                        // noofpipe+=1;
-                        if (mycan.Children.Contains(item)){
-                            mycan.Children.RemoveAt(mycan.Children.IndexOf(item));
-                            noofpipe+=1;
+            try{
+                // moving,jumping and changing the player move
+                player.fall();
+                player.jump();
+                if (player.changemovecon){
+                    player.changemove();
+                    player.changemovecon=false;
+                }
+                else{
+                    player.changemovecon=true;
+                }
+
+                if (Canvas.GetTop(player.bird)<0 || Canvas.GetTop(player.bird)+player.bird.Height>Height-140){
+                    deathtune();
+                    System.Environment.Exit(0);
+                }
+
+
+                if (noofpipe!=0)
+                {   
+                    spawnpipe();
+                    noofpipe-=1;
+                }
+
+
+                // the player collision collision is checked over here
+                // Note this collision can also be checked in the below loop but just for the purpose of readbility and to make the concern the seperate the login is written in an another logic and If you want can write both the logic in one loop
+                foreach (Pipe item in pipelist)
+                {
+                    var pipex = Canvas.GetLeft(item.recpipe);
+                    var pipey = Canvas.GetTop(item.recpipe);
+                    var pbottom = (Height-(Canvas.GetBottom(item.recpipe)+item.recpipe.Height))-35;
+
+                    var playerx = Canvas.GetLeft(player.bird);
+                    var playery = Canvas.GetTop(player.bird);
+                    
+                    if (playerx+player.bird.Width>pipex && playerx<pipex+item.recpipe.Width){
+                        if (playery>pipey && playery<pipey+item.recpipe.Height){
+                            deathtune();
+                            System.Environment.Exit(0);
+                        }
+                        else if (playery+player.bird.Height>pbottom){
+                            deathtune();
+                            System.Environment.Exit(0);
+                        }
+                        else{
+                            if (Canvas.GetLeft(item.recpipe)-Canvas.GetLeft(player.bird)<3 && Canvas.GetLeft(item.recpipe)-Canvas.GetLeft(player.bird)>0){
+                                mp.Pause();
+                                mp.Open(new Uri(audiobaseurl+"point.wav"));
+                                mp.Volume = 1;
+                                mp.Play();
+                                score+=1;
+                                scoretext.Content = score;
+                                break;
+                            }
+                        } 
+                    }
+                }
+
+
+                foreach (Pipe item in pipelist)
+                {
+                    if (Convert.ToString(item.recpipe.Tag)=="pipe"){
+                        Canvas.SetLeft(item.recpipe,Canvas.GetLeft(item.recpipe)-pipespeed);
+                        lastxco = Canvas.GetLeft(item.recpipe);
+                        if (lastxco+pipewidth<0){
+                            if (mycan.Children.Contains(item.recpipe)){
+                                mycan.Children.Remove(item.recpipe);
+                                noofpipe+=1;
+                            }
                         }
                     }
                 }
+
             }
-            player.fall();
-            player.jump();
-            if (player.changemovecon){
-                player.changemove();
-                player.changemovecon=false;
+            catch (Exception exe){
+                System.Console.WriteLine(exe);
             }
-            else{
-                player.changemovecon=true;
             }
-        }
 
         private void keyboard_keydown(object sender,KeyEventArgs e){
             if (e.Key == Key.Space){
+                mp.Open(new Uri("E:\\customs\\csharpdev\\Flappy_BIrd\\WpfApp1\\audio\\wing.wav"));
+                mp.Volume = 0.3;
+                mp.Play();
                 player.jumping=true;
             }
-            if (e.Key==Key.T){
-                player.changemove();
-            }
+        }
+
+        public void deathtune(){
+            mp.Open(new Uri(audiobaseurl+"die.wav"));
+            mp.Play();
         }
     }
 }
+
+// All done enjoy the gam
+
+// Note
+// As you lose the window or game is exited
+// Have fun🌛
+
+//Copyright©️ by AJTA's

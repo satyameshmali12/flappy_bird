@@ -4,17 +4,17 @@
 winexe
 C#
 .cs
-E:\customs\csharpdev\WpfApp1\WpfApp1\obj\Debug\net6.0-windows\
+E:\customs\csharpdev\Flappy_BIrd\WpfApp1\obj\Debug\net6.0-windows\
 WpfApp1
 none
 false
 TRACE;DEBUG;NET;NET6_0;NETCOREAPP
-E:\customs\csharpdev\WpfApp1\WpfApp1\App.xaml
-11407045341
+E:\customs\csharpdev\Flappy_BIrd\WpfApp1\App.xaml
+2-11057159
 
-5-1303815099
+6106482104
 194-97651837
-MainWindow.xaml;
+homepage.xaml;MainWindow.xaml;
 
-True
+False
 

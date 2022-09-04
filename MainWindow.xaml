@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="MainWindow" Height="650" Width="450" KeyDown="keyboard_keydown"  WindowStartupLocation="Manual" Left="400" Top="100" ResizeMode="noresize">
+        Title="Flappy_Bird" Height="650" Width="450" KeyDown="keyboard_keydown"  WindowStartupLocation="Manual" Left="400" Top="100" ResizeMode="noresize">
     <Canvas x:Name="mycan">
-
+        <Label Panel.ZIndex="10"  x:Name="scoretext" Canvas.Left="150" Canvas.Top="43" Content="0" Height="51" Width="221" FontFamily="Arial Black" FontSize="40" HorizontalAlignment="Left" VerticalAlignment="Center"/>
     </Canvas>
 </Window>
